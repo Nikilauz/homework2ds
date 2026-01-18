@@ -1,0 +1,128 @@
+import numpy as np
+import matplotlib.pyplot as plt
+from bbox_utils import bbox2rect, bboxoverlapval, prunebboxes, winscandetsvm_onescale
+from image_utils import cropbbox, meanvarpatchnorm
+from visualize import showrect, showbbox, showimage
+
+# ----------------------
+# Numeric / bbox tests
+# ----------------------
+def test_bbox2rect():
+    bbox = np.array([[1, 2, 5, 6]])
+    rect = bbox2rect(bbox)
+    assert rect.shape == (1, 4)
+    expected = np.array([1, 2, 4, 4])
+    assert np.all(rect[0] == expected)
+
+def test_bboxoverlapval():
+    bb1 = np.array([[0,0,10,10]])
+    bb2 = np.array([[5,5,15,15]])
+    ov = bboxoverlapval(bb1, bb2)
+    assert ov.shape == (1,1)
+    assert 0 < ov[0,0] <= 1
+
+def test_prunebboxes():
+    bbox = np.array([[0,0,10,10],[1,1,11,11]])
+    conf = np.array([0.9,0.8])
+    resbbox, resconf = prunebboxes(bbox, conf, 0.1)
+    assert len(resbbox) == 1
+    assert resconf[0] == 0.9
+
+# ----------------------
+# Image tests
+# ----------------------
+def test_cropbbox_inside_outside():
+    img = np.arange(16).reshape(4,4)
+    bbox_inside = [1,1,2,2]
+    cropped = cropbbox(img, bbox_inside)
+    assert cropped.shape == (2,2)
+    
+    bbox_outside = [-1,-1,2,2]
+    cropped = cropbbox(img, bbox_outside)
+    assert cropped.shape == (4,4)
+
+def test_meanvarpatchnorm():
+    imgs = np.ones((4,4,3))
+    normed = meanvarpatchnorm(imgs)
+    assert normed.shape == (4,4,3)
+    assert np.allclose(normed.mean(axis=(0,1)), 0)
+
+# ----------------------
+# Sliding window / ML test
+# ----------------------
+def test_winscandetsvm_onescale():
+    img = np.ones((5,5))
+    class Model:
+        def __init__(self):
+            self.W = np.ones(4)  # 2x2 window flattened
+            self.b = 0.0
+    model = Model()
+    bbox, conf, patches = winscandetsvm_onescale(img, model, wxsz=2, wysz=2)
+    assert bbox.shape[1] == 4
+    assert conf.ndim == 1
+    assert patches.shape[0:2] == (2,2)
+
+# ----------------------
+# Visualization tests
+# ----------------------
+def test_show_functions():
+    img = np.random.rand(10,10)
+    bbox = np.array([[1,1,5,5]])
+    rect = bbox2rect(bbox)
+
+    plt.figure()
+    showimage(img)
+    showbbox(bbox)
+    showrect(rect)
+    plt.close()
+
+# ----------------------
+# Full pipeline test
+# ----------------------
+def test_full_pipeline():
+    # Synthetic "meaningful" image: black background with a white square
+    img = np.zeros((32, 32))
+    img[10:20, 10:20] = 1.0  # white square
+
+    # Dummy model: favors bright patches
+    class DummyModel:
+        def __init__(self, wxsz, wysz):
+            self.W = np.ones(wxsz * wysz) * 5  # simple sum detector
+            self.b = 0.0
+
+    wxsz, wysz = 8, 8
+    model = DummyModel(wxsz, wysz)
+
+    # Sliding-window detection
+    bbox, conf, normpatches = winscandetsvm_onescale(img, model, wxsz, wysz, confthresh=0.)
+    assert isinstance(bbox, np.ndarray)
+    assert isinstance(conf, np.ndarray)
+    assert isinstance(normpatches, np.ndarray)
+    assert bbox.size > 0
+
+    # Non-max suppression
+    bbox, conf = prunebboxes(bbox, conf, ovthresh=0.5)
+    assert bbox.shape[1] == 4
+    assert conf.ndim == 1
+
+    # Visualization: the white square should be clearly detected
+    plt.figure()
+    showimage(img)
+    showbbox(bbox)
+    showrect(bbox2rect(bbox))
+    plt.title("Sanity check: white square detection")
+    plt.show()  # manual visual check
+
+# ----------------------
+# Run all tests
+# ----------------------
+if __name__ == "__main__":
+    test_bbox2rect()
+    test_bboxoverlapval()
+    test_prunebboxes()
+    test_cropbbox_inside_outside()
+    test_meanvarpatchnorm()
+    test_winscandetsvm_onescale()
+    test_show_functions()
+    test_full_pipeline()
+    print("All tests passed!")
