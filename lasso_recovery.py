@@ -1,9 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-from gradient_descent import argmin_F
+from gradient_descent import argmin_F, autodot
 
-autodot = lambda x : np.inner(x, x)
 np.set_printoptions(precision=2)
 
 N = 10000               # dimension
@@ -39,7 +38,8 @@ f = lambda x : 0.5 * autodot((A @ x) - y)
 df = lambda x : np.transpose(A) @ ((A @ x) - y)
 
 g = lambda x : lamb * np.linalg.norm(x, 1)
-def prox_transform(lamb, beta, x, xi):
+
+def prox_transform(beta, x, xi):
     N = x.size
 
     z_star = np.zeros(N)

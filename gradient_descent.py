@@ -1,8 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-autodot = lambda x : np.inner(x, x)
-np.set_printoptions(precision=2)
+def autodot(x):
+    return np.inner(x, x)
 
 def guess_grad_lip(x_samples, grad_vals, old_guess=0.):
     lip = old_guess
@@ -28,7 +28,7 @@ def argmin_F(f_oracle, df_oracle, g_oracle, prox_transform, hyperpars):
     xs = [np.random.uniform(-RAND_SIZE, RAND_SIZE, N) for _ in range(GUESS_EFFORT)]
     fs = [f_oracle(x) for x in xs]
     dfs = [df_oracle(x) for x in xs]
-    Fs = [fs[i] + g(x) for (i, x) in enumerate(xs)]
+    Fs = [fs[i] + g_oracle(x) for (i, x) in enumerate(xs)]
     betas = [guess_grad_lip(xs, dfs)]
     # print(xs)
     # print(fs)
@@ -40,13 +40,13 @@ def argmin_F(f_oracle, df_oracle, g_oracle, prox_transform, hyperpars):
 
     for i in range(STEPOUT):
         print("dx=" + str(np.linalg.norm(xs[-1] - xs[-2], 2)) + " (iteration " + str(i) + "/" + str(STEPOUT) + ")...", end="\r")
-        x_new = prox_transform(g_lamb, betas[-1], xs[-1], dfs[-1])
+        x_new = prox_transform(betas[-1], xs[-1], dfs[-1])
         beta_new = beta_from_equation_3(xs[-1], xs[-2], fs[-1], fs[-2], dfs[-2])
 
         xs += [x_new]
         fs += [f_oracle(x_new)]
         dfs += [df_oracle(x_new)]
-        Fs += [fs[-1] + g(x_new)]
+        Fs += [fs[-1] + g_oracle(x_new)]
         betas += [beta_new]
 
         if solved():
