@@ -1,3 +1,6 @@
+# disclaimer: this file was transpiled from MATLAB using ChatGPT
+#             to validate it, there are tests in the test folder
+
 from matplotlib import pyplot as plt
 import matplotlib.patches as patches
 import numpy as np

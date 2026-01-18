@@ -1,3 +1,6 @@
+# disclaimer: this file was transpiled from MATLAB using ChatGPT
+#             to validate it, there are tests in the test folder
+
 import numpy as np
 
 from image_utils import cropbbox, meanvarpatchnorm
