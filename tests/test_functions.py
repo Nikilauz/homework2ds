@@ -115,6 +115,65 @@ def test_full_pipeline():
     plt.title("Sanity check: white square detection")
     plt.show()  # manual visual check
 
+def test_scanning_window_pipeline_smoke():
+    """
+    Smoke test for scanning-window detection + NMS.
+    Verifies that the pipeline runs and outputs have correct shapes.
+    """
+
+    # --- dummy image: simple bright square on dark background ---
+    img = np.zeros((50, 50, 3), dtype=float)
+    img[15:39, 15:39, :] = 1.0  # "face-like" square
+
+    gimg = img.mean(axis=2)
+
+    wxsz = wysz = 24
+    ysz, xsz = gimg.shape
+
+    # sliding windows
+    x, y = np.meshgrid(
+        np.arange(1, xsz - wxsz + 1),
+        np.arange(1, ysz - wysz + 1)
+    )
+    bbox = np.stack([
+        x.ravel(),
+        y.ravel(),
+        x.ravel() + wxsz - 1,
+        y.ravel() + wysz - 1
+    ], axis=1)
+
+    n = bbox.shape[0]
+
+    imgcropall = np.zeros((wysz, wxsz, n))
+    for i in range(n):
+        imgcropall[:, :, i] = cropbbox(gimg, bbox[i])
+
+    imgcropall = meanvarpatchnorm(imgcropall)
+    X = imgcropall.reshape(wysz * wxsz, n).T
+
+    # --- dummy classifier ---
+    Wbest = np.ones((wysz * wxsz,))
+    bbest = -0.5 * wysz * wxsz
+
+    conf = X @ Wbest - bbest
+
+    # basic sanity checks
+    assert bbox.shape[1] == 4
+    assert conf.ndim == 1
+    assert conf.shape[0] == bbox.shape[0]
+
+    # NMS stage (may return empty, that's OK)
+    indsel = np.where(conf > 0)[0]
+    if len(indsel) > 0:
+        nmsbbox, nmsconf = prunebboxes(
+            bbox[indsel],
+            conf[indsel],
+            ovthresh=0.2
+        )
+        assert nmsbbox.shape[1] == 4
+        assert nmsconf.ndim == 1
+
+
 # ----------------------
 # Run all tests
 # ----------------------
@@ -127,4 +186,5 @@ if __name__ == "__main__":
     test_winscandetsvm_onescale()
     test_show_functions()
     test_full_pipeline()
+    test_scanning_window_pipeline_smoke()
     print("All tests passed!")
