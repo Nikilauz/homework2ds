@@ -22,6 +22,7 @@ hyperpars = {
 
 ############## Lasso recovery ######################
 
+
 # set up Lasso problem
 m = np.random.randint(low=N, high=1.5*N)
 print("dimension m: " + str(m))
@@ -30,16 +31,32 @@ w = np.random.uniform(low=-RAND_SIZE, high=RAND_SIZE, size=N)
 sigma = 0.1
 xi = np.random.normal(size=m)
 
+lamb = 2 * sigma * np.sqrt(np.log(N))
 y = (A @ w) + sigma * xi
 
 # oracles
 f = lambda x : 0.5 * autodot((A @ x) - y)
 df = lambda x : np.transpose(A) @ ((A @ x) - y)
 
-lamb = 2 * sigma * np.sqrt(np.log(N))
+g = lambda x : lamb * np.linalg.norm(x, 1)
+def prox_transform(lamb, beta, x, xi):
+    N = x.size
+
+    z_star = np.zeros(N)
+
+    for i in range(N):
+        val = x[i] - xi[i]/beta
+        c = lamb/beta
+        if np.abs(val) > c:
+            z_star[i] = val - c
+            if z_star[i] < 0:
+                z_star[i] += 2 * c
+
+    return z_star
+
 
 # launch gradient descent
-w_recovered = argmin_F(f, df, lamb, hyperpars)
+w_recovered = argmin_F(f, df, g, prox_transform, hyperpars)
 #print(w)
 #print(w_recovered)
 print(np.linalg.norm(w - w_recovered, 1))
