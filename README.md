@@ -11,3 +11,5 @@ The MATLAB code in `faces` has been transpiled to python, and the transpilation 
 The Lasso recovery works quite decently, getting an absolute error of less than 10 for almost all input dimensions and ranges, often below 1.
 
 The linear classifier pipeline has been fully set up and functions, however, the Logistic loss function and thus problems (M1) and (M2) don't produce stable results even after extensive grid search on the parameters.
+
+The mean average image hyperplane classifier in exercise 5 roughly classifies half of the images correctly. Of course, it can not compensate for e.g. the background being different in different images, so no meaningful classification is possible. It is as good as guessing randomly.
