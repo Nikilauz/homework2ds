@@ -1,5 +1,5 @@
 # Mathematical Optimization - Homework 2'
-The written part of the exercises can be found in TODO. The notes on exercise 4 are due to Louka Moroni.
+The written part of the exercises can be found [here](https://bwsyncandshare.kit.edu/s/N7DE45Pd7rppEBb). The notes on exercise 4 are due to Louka Moroni.
 
 The coded parts can be found as the following:
  - exercise 2.1: file `gradient_descent.py` in function `prox_transform`
