@@ -170,23 +170,25 @@ for gam in gammas:
         n_wrong_class_m2 = eval_x(Xval, yval, x_and_t_star_m1)
         print(n_wrong_class_m1, n_wrong_class_m2)
 
-        if best_m1 > n_wrong_class_m1:
+        if best_m1 > n_wrong_class_m1 or m1_star == None:
             best_m1 = n_wrong_class_m1
             m1_star = x_and_t_star_m1
-        if best_m2 > n_wrong_class_m2:
+        if best_m2 > n_wrong_class_m2 or m2_star == None:
             best_m2 = n_wrong_class_m2
             m2_star = x_and_t_star_m2
     
-    best_x_and_t = m1_star if best_m1 < best_m2 else m2_star
-    print(best_x_and_t)
-    classifier = lambda img : np.sign(best_x_and_t[:-1] @ img.ravel() + best_x_and_t[-1])
+best_x_and_t = m1_star if best_m1 < best_m2 else m2_star
+print(best_x_and_t)
+classifier = lambda img : np.sign(best_x_and_t[:-1] @ img.ravel() + best_x_and_t[-1])
 
-    # show classifier #########################################################################
+# show classifier #########################################################################
 
-    showimage(np.reshape(best_x_and_t[:-1], (24, 24)))
-    plt.show()
+showimage(np.reshape(best_x_and_t[:-1], (24, 24)))
+plt.show()
 
-    # eval mean image #########################################################################
+# eval mean image #########################################################################
 
-    print(eval_x(np.vstack([Xtrain, Xval]), np.hstack([ytrain, yval]), np.mean(np.vstack(posdata[:, :, :min(2000, npos)], negdata[:, :, :min(2000, nneg)]), axis=2)))
-        
+Xdata = np.vstack([Xtrain_flat, Xval])
+ydata = np.hstack([ytrain, yval])
+mean_img = np.mean(Xdata, axis=0)
+print(eval_x(Xdata, ydata, np.append(mean_img, 0)))
