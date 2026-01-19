@@ -93,37 +93,53 @@ yval = np.hstack([ypos[ntrain_pos:2*ntrain_pos], yneg[ntrain_neg:2*ntrain_neg]])
 print(f"Training set: {Xtrain.shape[0]} samples")
 print(f"Validation set: {Xval.shape[0]} samples")
 
-############## end of transpilation
+############## end of transpilation ##################################################
 
-Xtrain_flat = [x.ravel() for x in Xtrain]
-Xval_flat = [x.ravel() for x in Xval]
+Xtrain_flat = [x.ravel() for x in Xtrain] # preflatten the images for the gradient descent algo
 
-# define M1 and M2
+# evaluate a classifier
+def eval_x(X, y, x):
+    n_wrong_class = 0
+    for i in range(y.size):
+        n_wrong_class += np.sign(x[:-1] @ X[i].ravel() + x[-1]) != y[i]
+    return n_wrong_class
+
+# define M1 and M2 #####################################################################
 
 N = 24*24
 
-L = lambda gamma, x_and_t, u, y : gamma * np.sum([np.log(1 + np.exp((1/gamma) * (1 - y[i]*(x_and_t[:-1] @ u[i] + x_and_t[-1])))) for i in range(N)])
+L = lambda gamma, x_and_t, u, y : gamma * np.sum([np.log(1 + np.exp((1./gamma) * (1 - y[i]*(x_and_t[:-1] @ u[i] + x_and_t[-1])))) for i in range(y.size)])
 
-dL = lambda gamma, x_and_t, u, y : gamma * np.sum([np.exp((1./gamma) * (1 - y[i](x_and_t[:-1] @ u[i] + x_and_t[-1]))) * (1./gamma) * (list(u[i]) + [1.])/(1 + np.exp((1./gamma) * (1 - y[i](x_and_t[:-1] @ u[i] + x_and_t[-1])))) for i in range(N)])
+dL = lambda gamma, x_and_t, u, y : gamma * np.sum([np.exp((1./gamma) * (1 - y[i]*(x_and_t[:-1] @ u[i] + x_and_t[-1])))
+                 * (1./gamma) * (np.append(u[i], [1.])) / (1 + np.exp((1./gamma) * (1 - y[i]*(x_and_t[:-1] @ u[i] + x_and_t[-1])))) for i in range(y.size)], axis=0)
+
+#test = L#lambda gamma, x_and_t, u, y : gamma * np.sum([(1./gamma) * (np.append(u[i], [1.]))/(1 + np.exp((1./gamma))) for i in range(y.size)])
+#print(test(1, np.array([1,2,3]), [np.array([1,1])], np.array([1])))
 
 g_m1 = lambda kappa, x_and_t : kappa * np.linalg.norm(x_and_t[:-1], 1)
 
 g_m2 = lambda lamb, x_and_t : 0.5 * lamb * autodot(x_and_t[:-1])
 
-prox_m2 = lambda _ : np.zeros(N + 1)
+prox_m2 = lambda lamb, beta, x, xi : (beta * x - xi) / (lamb + beta)
 
-# grid search
+# grid search #############################################################################
 
 hyperpars = {
     "N": N+1,
-    "STEPOUT": 1000,
+    "STEPOUT": 500,
     "RAND_SIZE": 10,
-    "GUESS_EFFORT": 50,
-    "TOLERANCE": 0.01
+    "GUESS_EFFORT": 100,
+    "TOLERANCE": 1e-3
 }
 
-gammas = [1.]
-kappas = [1.]
+gammas = [1.]#2**np.linspace(-10, 4)
+kappas = [1.]#2**np.linspace(-10, 4)
+
+best_m1 = yval.size
+m1_star = None
+best_m2 = yval.size
+m2_star = None
+
 
 for gam in gammas:
     for kap in kappas:
@@ -131,14 +147,46 @@ for gam in gammas:
             lambda x_and_t : L(gam, x_and_t, Xtrain_flat, ytrain),
             lambda x_and_t : dL(gam, x_and_t, Xtrain_flat, ytrain),
             lambda x_and_t : g_m1(kap, x_and_t),
-            prox_transform,
+            lambda beta, x, xi : prox_transform(kap, beta, x, xi),
             hyperpars
         )
+
+        #plt.show()
+        plt.close()
+
 
         x_and_t_star_m2 = argmin_F(
             lambda x_and_t : L(gam, x_and_t, Xtrain_flat, ytrain),
             lambda x_and_t : dL(gam, x_and_t, Xtrain_flat, ytrain),
             lambda x_and_t : g_m2(kap, x_and_t),
-            prox_m2,
+            lambda beta, x, xi : prox_m2(kap, beta, x, xi),
             hyperpars
         )
+
+        #plt.show()
+        plt.close()
+        
+        n_wrong_class_m1 = eval_x(Xval, yval, x_and_t_star_m1)
+        n_wrong_class_m2 = eval_x(Xval, yval, x_and_t_star_m1)
+        print(n_wrong_class_m1, n_wrong_class_m2)
+
+        if best_m1 > n_wrong_class_m1:
+            best_m1 = n_wrong_class_m1
+            m1_star = x_and_t_star_m1
+        if best_m2 > n_wrong_class_m2:
+            best_m2 = n_wrong_class_m2
+            m2_star = x_and_t_star_m2
+    
+    best_x_and_t = m1_star if best_m1 < best_m2 else m2_star
+    print(best_x_and_t)
+    classifier = lambda img : np.sign(best_x_and_t[:-1] @ img.ravel() + best_x_and_t[-1])
+
+    # show classifier #########################################################################
+
+    showimage(np.reshape(best_x_and_t[:-1], (24, 24)))
+    plt.show()
+
+    # eval mean image #########################################################################
+
+    print(eval_x(np.vstack([Xtrain, Xval]), np.hstack([ytrain, yval]), np.mean(np.vstack(posdata[:, :, :min(2000, npos)], negdata[:, :, :min(2000, nneg)]), axis=2)))
+        

@@ -78,7 +78,11 @@ imgcropall = meanvarpatchnorm(imgcropall)
 X = imgcropall.reshape(wysz * wxsz, n).T
 
 # Linear classifier confidence
-conf = X @ Wbest - bbest
+
+# TODO feed results from training!
+Wbest = np.zeros(24*24)
+bbest = 0
+conf = X @ Wbest + bbest
 
 ##############################################################################
 ################### display most confident detections #########################
