@@ -8,6 +8,6 @@ The coded parts can be found as the following:
 
 The MATLAB code in `faces` has been transpiled to python, and the transpilation has been tested.
 
-The Lasso recovery works quite decently, getting an absolute error of less than 10 for almost all input dimensions and ranges.
+The Lasso recovery works quite decently, getting an absolute error of less than 10 for almost all input dimensions and ranges, often below 1.
 
 The linear classifier pipeline has been fully set up and functions, however, the Logistic loss function and thus problems (M1) and (M2) don't produce stable results even after extensive grid search on the parameters.
