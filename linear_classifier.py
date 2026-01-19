@@ -1,5 +1,6 @@
 # disclaimer: this file was transpiled from MATLAB using ChatGPT
 #             to validate it, there are tests in the test folder
+# manually written code starts at line 97
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -132,8 +133,8 @@ hyperpars = {
     "TOLERANCE": 1e-3
 }
 
-gammas = [1.]#2**np.linspace(-10, 4)
-kappas = [1.]#2**np.linspace(-10, 4)
+gammas = 2**np.linspace(-10, 4)
+kappas = 2**np.linspace(-10, 4)
 
 best_m1 = yval.size
 m1_star = None
